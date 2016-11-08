@@ -12,7 +12,8 @@
            :col col
            :visited? false
            :bottom? true
-           :right? true})))))
+           :right? true
+           :end? false})))))
 
 (defn possible-neighbors [rooms row col]
   (vec
@@ -43,11 +44,17 @@
 
 (declare create-maze)
 
+(def hit-dead-end? (atom false))
+
 (defn create-maze-loop [rooms old-row old-col new-row new-col]
   (let [new-rooms (reagan rooms old-row old-col new-row new-col)
         new-rooms (create-maze new-rooms new-row new-col)]
       (if (= rooms new-rooms)
-        rooms
+        (if (deref hit-dead-end?)
+          rooms
+          (do
+            (reset! hit-dead-end? true)
+            (assoc-in rooms [old-row old-col :end?] true)))
         (create-maze-loop new-rooms old-row old-col new-row new-col))))
 
 (defn create-maze [rooms row col]
@@ -58,6 +65,7 @@
       rooms)))
 
 (defn -main [& args]
+  (reset! hit-dead-end? false)
   (let [rooms (create-rooms)
         rooms (create-maze rooms 0 0)]
     (doseq [row rooms]
@@ -66,8 +74,15 @@
     (doseq [row rooms]
       (print "|")
       (doseq [room row]
-        (if (:bottom? room)
+        (cond
+          (and (= 0 (:row room))
+               (= 0 (:col room)))
+          (print "o")
+          (:end? room)
+          (print "x")
+          (:bottom? room)
           (print "_")
+          :else
           (print " "))
         (if (:right? room)
           (print "|")
